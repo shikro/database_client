@@ -18,7 +18,12 @@ class complete_login_window(Ui_login_window):
     def login_clicked(self):
         if not self.check_fields():
             return
-        self.client.login(self.login_edit.text(), self.password_edit.text())
+        error_msg = self.client.login(self.login_edit.text(), self.password_edit.text())
+        if error_msg:
+            self.error_label.setText(error_msg)
+        else:
+            # TODO new main_window
+            print('logged')
 
     def check_fields(self):
         if not self.login_edit.text():
