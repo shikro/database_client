@@ -18,7 +18,13 @@ class account_creation_window(Ui_account_creation_window):
     def _create_clicked(self):
         if not self._check_fields():
             return
-        # TODO account creation
+        error_msg = self.context.db_client.create_account(name=self.name_edit.text(),
+                                                          phone=self.phone_edit.text(),
+                                                          password=self.password_edit.text())
+        if error_msg:
+            self.error_label.setText(error_msg)
+        else:
+            self.context.change_window(window_type.logging)
 
     def _check_fields(self):
         res = True
@@ -32,7 +38,6 @@ class account_creation_window(Ui_account_creation_window):
             self.password_edit.setPlaceholderText("enter password")
             res = False
         return res
-
 
     def _cancel_clicked(self):
         self.context.change_window(window_type.logging)
