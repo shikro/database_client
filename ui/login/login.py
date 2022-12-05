@@ -1,38 +1,38 @@
 from ui.login.ui_login import Ui_login_window
-from client import db_client
+from ui.window_types import window_type
 
 
-class complete_login_window(Ui_login_window):
-    def __init__(self):
-        Ui_login_window.__init__(self)
-        self.client = db_client()
+class login_window(Ui_login_window):
+    def __init__(self, context):
+        super().__init__()
+        self.context = context
 
-    def setupUi(self, login_window):
-        Ui_login_window.setupUi(self, login_window)
-        self.setup_events()
+    def setup(self):
+        Ui_login_window.setupUi(self, self.context)
+        self._setup_events()
 
-    def setup_events(self):
-        self.login_button.clicked.connect(self.login_clicked)
-        self.create_account_button.clicked.connect(self.create_account_clicked)
+    def _setup_events(self):
+        self.login_button.clicked.connect(self._login_clicked)
+        self.create_account_button.clicked.connect(self._create_account_clicked)
 
-    def login_clicked(self):
-        if not self.check_fields():
+    def _login_clicked(self):
+        if not self._check_fields():
             return
-        error_msg = self.client.login(self.login_edit.text(), self.password_edit.text())
+        error_msg = self.context.db_client.login(self.login_edit.text(), self.password_edit.text())
         if error_msg:
             self.error_label.setText(error_msg)
         else:
-            # TODO new main_window
-            print('logged')
+            self.context.change_window(window_type.main)
 
-    def check_fields(self):
+    def _check_fields(self):
+        res = True
         if not self.login_edit.text():
             self.login_edit.setPlaceholderText("you must enter login")
-            return False
+            res = False
         if not self.password_edit.text():
             self.password_edit.setPlaceholderText("you must enter password")
-            return False
-        return True
+            res = False
+        return res
 
-    def create_account_clicked(self):
-        self.login_edit.setText("account")
+    def _create_account_clicked(self):
+        self.context.change_window(window_type.account_creation)
