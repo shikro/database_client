@@ -1,5 +1,6 @@
 from ui.login.ui_login import Ui_login_window
 from ui.window_types import window_type
+from client import client_role
 
 
 class login_window(Ui_login_window):
@@ -22,7 +23,11 @@ class login_window(Ui_login_window):
         if error_msg:
             self.error_label.setText(error_msg)
         else:
-            self.context.change_window(window_type.main)
+            match self.context.db_client.role:
+                case client_role.reader:
+                    self.context.change_window(window_type.reader)
+                case _:
+                    print(self.context.db_client.role)
 
     def _check_fields(self):
         res = True

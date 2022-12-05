@@ -47,11 +47,19 @@ class queries:
                             "(reader_id, phone, name) "
                             "VALUES (%s, %s, %s)")
 
+    update_account_info = ("UPDATE readers "
+                           "SET name = %s, email = %s "
+                           "WHERE phone = %s")
+
+    update_password = ("UPDATE accounts "
+                       "SET password = %s "
+                       "WHERE phone = %s")
 
 class db_client:
     def __init__(self):
         self._connection = mysql.connector.connect(user='root', database='library')
         self.role = client_role.unauthorized
+        self.password = None
         self.id = None
         self.name = None
         self.phone = None
@@ -73,12 +81,14 @@ class db_client:
 
         (phone, hashed_password) = account.fetchone()
         if password_hash(password) == int(hashed_password):
+            self.password = password
             self._get_account_info(phone)
         else:
             error_message = "Wrong password, try again"
         return error_message
 
     def _get_account_info(self, phone):
+        self.phone = phone
         reader = self._execute_query(queries.get_reader_info, phone)
         if reader.rowcount:
             (reader_id, name, email, birth_date) = reader.fetchone()
@@ -130,3 +140,21 @@ class db_client:
         self._connection.commit()
 
         return None
+
+    def update_account_info(self, new_name="", new_email="", new_password=""):
+        if new_name:
+            self.name = new_name
+        if new_email:
+            self.email = new_email
+        if new_password:
+            self.password = new_password
+
+        info = (self.name, self.email, self.phone)
+        cursor = self._connection.cursor(buffered=True)
+        cursor.execute(queries.update_account_info, info)
+
+        info = (password_hash(self.password), self.phone)
+        cursor = self._connection.cursor(buffered=True)
+        cursor.execute(queries.update_password, info)
+
+        self._connection.commit()
