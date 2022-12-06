@@ -69,6 +69,29 @@ class queries:
                        "INNER JOIN `book genres` AS bg ON g.genre_id = bg.genre_id "
                        "WHERE bg.book_id = %s")
 
+    get_book_instance_by_book_id = ("SELECT bi.book_instance_id "
+                                    "FROM `book instance` AS bi "
+                                    "WHERE bi.is_available = TRUE and bi.book_id = %s "
+                                    "LIMIT 1")
+
+    reserve_book_instance = ("UPDATE `book instance` "
+                             "SET is_available = FALSE "
+                             "WHERE book_instance_id = %s")
+
+    restore_book_instance = ("UPDATE `book instance` "
+                             "SET is_available = TRUE "
+                             "WHERE book_instance_id = %s")
+
+    get_last_order_id = "SELECT MAX(order_id) FROM orders"
+
+    create_order_step1 = ("INSERT INTO orders "
+                          "(order_id, reader_id, return_date, status_id) "
+                          "VALUES (%s, %s, %s, 1)")
+
+    create_order_step2 = ("INSERT INTO `order details` "
+                          "(order_id, book_instance_id) "
+                          "VALUES (%s, %s)")
+
 
 class db_client:
     def __init__(self):
@@ -81,7 +104,6 @@ class db_client:
         self.email = None
         self.birth_date = None
         self.books = []
-        self.new_order = []
         self._update_books()
 
     def _execute_query(self, query, *args):
@@ -190,3 +212,30 @@ class db_client:
         cursor.execute(queries.update_password, info)
 
         self._connection.commit()
+
+    def create_order(self, new_order, return_date):
+        order = []
+        for book_id in new_order:
+            b = self._execute_query(queries.get_book_instance_by_book_id, book_id)
+            if not b.rowcount:
+                for bk in self.books:
+                    if bk.id == book_id:
+                        return f"Book '{bk.name}' isn't available"
+
+            book_instance_id, = b.fetchone()
+            order.append(book_instance_id)
+
+        new_order_id, = self._execute_query(queries.get_last_reader_id).fetchone()
+        new_order_id += 1
+
+        cursor = self._connection.cursor(buffered=True)
+        data_to_insert = (new_order_id, self.id, return_date)
+        cursor.execute(queries.create_order_step1, data_to_insert)
+
+        for book_instance_id in order:
+            data_to_insert = (new_order_id, book_instance_id)
+            cursor.execute(queries.create_order_step2, data_to_insert)
+            cursor.execute(queries.reserve_book_instance, (book_instance_id,))
+
+        self._connection.commit()
+        return ""

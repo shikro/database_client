@@ -42,7 +42,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>2</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="library_page">
      <property name="geometry">
@@ -135,7 +135,7 @@
        <widget class="QPushButton" name="create_order_button">
         <property name="geometry">
          <rect>
-          <x>450</x>
+          <x>530</x>
           <y>330</y>
           <width>131</width>
           <height>51</height>
@@ -191,6 +191,35 @@
          <string>your order:</string>
         </property>
        </widget>
+       <widget class="QLabel" name="info_label">
+        <property name="geometry">
+         <rect>
+          <x>360</x>
+          <y>270</y>
+          <width>301</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="clear_order_button">
+        <property name="geometry">
+         <rect>
+          <x>370</x>
+          <y>330</y>
+          <width>131</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>clear order</string>
+        </property>
+       </widget>
       </widget>
      </widget>
     </widget>
@@ -199,8 +228,8 @@
       <rect>
        <x>0</x>
        <y>0</y>
-       <width>98</width>
-       <height>28</height>
+       <width>681</width>
+       <height>429</height>
       </rect>
      </property>
      <attribute name="label">
