@@ -1,6 +1,7 @@
 import mysql.connector
 import hashlib
 from enum import Enum
+from book import book
 
 
 class client_role(Enum):
@@ -55,6 +56,20 @@ class queries:
                        "SET password = %s "
                        "WHERE phone = %s")
 
+    get_all_books_id_name = ("SELECT book_id, name "
+                             "FROM books")
+
+    get_book_authors = ("SELECT a.name "
+                        "FROM authors AS a "
+                        "INNER JOIN `book authors` AS ba ON a.author_id = ba.author_id "
+                        "WHERE ba.book_id = %s")
+
+    get_book_genres = ("SELECT g.name "
+                       "FROM genres AS g "
+                       "INNER JOIN `book genres` AS bg ON g.genre_id = bg.genre_id "
+                       "WHERE bg.book_id = %s")
+
+
 class db_client:
     def __init__(self):
         self._connection = mysql.connector.connect(user='root', database='library')
@@ -65,11 +80,28 @@ class db_client:
         self.phone = None
         self.email = None
         self.birth_date = None
+        self.books = []
+        self.new_order = []
+        self._update_books()
 
     def _execute_query(self, query, *args):
         cursor = self._connection.cursor(buffered=True)
         cursor.execute(query, args)
         return cursor
+
+    def _update_books(self):
+        books = self._execute_query(queries.get_all_books_id_name)
+        for (book_id, name) in books:
+            self.books.append(book(book_id, name))
+
+        for b in self.books:
+            authors = self._execute_query(queries.get_book_authors, b.id)
+            for author, in authors:
+                b.authors.append(author)
+
+            genres = self._execute_query(queries.get_book_genres, b.id)
+            for genre, in genres:
+                b.genres.append(genre)
 
     def login(self, login, password):
         error_message = None
