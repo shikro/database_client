@@ -66,12 +66,70 @@
        </rect>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="order_statuses_tab">
        <attribute name="title">
         <string>order statuses</string>
        </attribute>
+       <widget class="QTableWidget" name="orders_table">
+        <property name="geometry">
+         <rect>
+          <x>30</x>
+          <y>20</y>
+          <width>611</width>
+          <height>331</height>
+         </rect>
+        </property>
+        <property name="editTriggers">
+         <set>QAbstractItemView::NoEditTriggers</set>
+        </property>
+        <property name="gridStyle">
+         <enum>Qt::DashDotLine</enum>
+        </property>
+        <property name="cornerButtonEnabled">
+         <bool>true</bool>
+        </property>
+        <attribute name="horizontalHeaderDefaultSectionSize">
+         <number>145</number>
+        </attribute>
+        <attribute name="verticalHeaderDefaultSectionSize">
+         <number>60</number>
+        </attribute>
+        <column>
+         <property name="text">
+          <string>return date</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>books</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>status</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string/>
+         </property>
+        </column>
+       </widget>
+       <widget class="QPushButton" name="refresh_button">
+        <property name="geometry">
+         <rect>
+          <x>400</x>
+          <y>360</y>
+          <width>161</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>refresh</string>
+        </property>
+       </widget>
       </widget>
       <widget class="QWidget" name="create_order_tab">
        <attribute name="title">
@@ -228,8 +286,8 @@
       <rect>
        <x>0</x>
        <y>0</y>
-       <width>681</width>
-       <height>429</height>
+       <width>100</width>
+       <height>30</height>
       </rect>
      </property>
      <attribute name="label">
@@ -241,8 +299,8 @@
       <rect>
        <x>0</x>
        <y>0</y>
-       <width>681</width>
-       <height>429</height>
+       <width>100</width>
+       <height>30</height>
       </rect>
      </property>
      <attribute name="label">

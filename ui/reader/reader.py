@@ -9,7 +9,7 @@ def create_item(text):
     return item
 
 
-class table_button(QtWidgets.QPushButton):
+class books_table_button(QtWidgets.QPushButton):
     def __init__(self, parent, book_id, book_name, context):
         super().__init__(parent)
         self.book_id = book_id
@@ -22,6 +22,18 @@ class table_button(QtWidgets.QPushButton):
         self.context.add_book_to_order(self.book_id, self.book_name)
 
 
+class orders_table_button(QtWidgets.QPushButton):
+    def __init__(self, parent, order_id, context):
+        super().__init__(parent)
+        self.order_id = order_id
+        self.context = context
+        self.setText("cancel order")
+        self.clicked.connect(self._clicked)
+
+    def _clicked(self):
+        self.context.cancel_order(self.order_id)
+
+
 class reader_window(Ui_reader_window):
     def __init__(self, context):
         super().__init__()
@@ -32,6 +44,7 @@ class reader_window(Ui_reader_window):
         Ui_reader_window.setupUi(self, self.context)
         self._setup_account_info_fields()
         self._setup_books_table()
+        self._setup_orders_table()
         self._setup_events()
 
     def _setup_account_info_fields(self):
@@ -55,13 +68,37 @@ class reader_window(Ui_reader_window):
             genres = ', '.join(map(str, book.genres))
             self.books_table.setItem(row_num, genres_column, create_item(genres))
 
-            add_to_order_button = table_button(self.books_table, book.id, book.name, self)
+            add_to_order_button = books_table_button(self.books_table, book.id, book.name, self)
             self.books_table.setCellWidget(row_num, 0, add_to_order_button)
+
+    def _setup_orders_table(self):
+        self.orders_table.setRowCount(0)
+        orders = self.context.db_client.orders
+        return_date_column = 0
+        books_column = 1
+        status_column = 2
+        button_column = 3
+        for order in orders:
+            row_num = self.orders_table.rowCount()
+            self.orders_table.insertRow(row_num)
+
+            self.orders_table.setItem(row_num, return_date_column, create_item(str(order.return_date)))
+            self.orders_table.setItem(row_num, status_column, create_item(order.status))
+
+            book_names_list = QtWidgets.QListWidget()
+            self.orders_table.setCellWidget(row_num, books_column, book_names_list)
+            for book_name in order.book_names:
+                book_names_list.addItem(book_name)
+
+            if order.status == 'Создан':
+                cancel_button = orders_table_button(self.orders_table, order.id, self)
+                self.orders_table.setCellWidget(row_num, button_column, cancel_button)
 
     def _setup_events(self):
         self.update_info_button.clicked.connect(self._update_info_clicked)
         self.create_order_button.clicked.connect(self._create_order_clicked)
         self.clear_order_button.clicked.connect(self._clear_order_clicked)
+        self.refresh_button.clicked.connect(self._refresh_clicked)
 
     def _update_info_clicked(self):
         if not self._check_account_info_fields():
@@ -87,6 +124,11 @@ class reader_window(Ui_reader_window):
             return
         self.selected_books.append(book_id)
         self.books_in_order_list.addItem(book_name)
+        return
+
+    def cancel_order(self, order_id):
+        self.context.db_client.cancel_order(order_id)
+        self._setup_orders_table()
         return
 
     def _create_order_clicked(self):
@@ -115,3 +157,6 @@ class reader_window(Ui_reader_window):
         self.info_label.setText("")
         self.selected_books.clear()
         self.books_in_order_list.clear()
+
+    def _refresh_clicked(self):
+        self._setup_orders_table()

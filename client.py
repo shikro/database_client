@@ -2,6 +2,7 @@ import mysql.connector
 import hashlib
 from enum import Enum
 from book import book
+from order import order
 
 
 class client_role(Enum):
@@ -92,6 +93,34 @@ class queries:
                           "(order_id, book_instance_id) "
                           "VALUES (%s, %s)")
 
+    @staticmethod
+    def get_order_id_name(reader_id):
+        return ("SELECT o.order_id, s.status_name, o.return_date "
+                "FROM orders AS o "
+                "INNER JOIN statuses AS s ON o.status_id = s.status_id "
+                f"WHERE o.reader_id = {reader_id}")
+
+    @staticmethod
+    def get_book_names(order_id):
+        return ("SELECT b.name, bi.book_instance_id "
+                "FROM `order details` AS od "
+                "INNER JOIN `book instance` AS bi ON od.book_instance_id  = bi.book_instance_id "
+                "INNER JOIN books AS b ON b.book_id = bi.book_id "
+                f"WHERE od.order_id = {order_id}")
+
+    @staticmethod
+    def cancel_order(order_id):
+        return ("UPDATE orders "
+                "SET status_id = 4 "
+                f"WHERE order_id = {order_id}")
+
+    @staticmethod
+    def restore_order_books(order_id):
+        return ("UPDATE `book instance` AS bi "
+                "INNER JOIN `order details` AS od ON bi.book_instance_id = od.book_instance_id "
+                "SET bi.is_available = TRUE "
+                f"WHERE od.order_id = {order_id}")
+
 
 class db_client:
     def __init__(self):
@@ -104,6 +133,7 @@ class db_client:
         self.email = None
         self.birth_date = None
         self.books = []
+        self.orders = []
         self._update_books()
 
     def _execute_query(self, query, *args):
@@ -125,6 +155,31 @@ class db_client:
             for genre, in genres:
                 b.genres.append(genre)
 
+    def _update_orders(self):
+        self.orders.clear()
+        orders = self._execute_query(queries.get_order_id_name(reader_id=self.id))
+        for (order_id, order_status, return_date) in orders:
+            new_order = order(order_id, order_status)
+            new_order.return_date = return_date
+            book_names = self._execute_query(queries.get_book_names(order_id=order_id))
+            for (book_name, bi_id) in book_names:
+                new_order.book_names.append(book_name)
+                new_order.book_ids.append(bi_id)
+
+            self.orders.append(new_order)
+
+    def cancel_order(self, order_id):
+        for o in self.orders:
+            if o.id == order_id:
+                if not o.status == 'Создан':
+                    return
+
+        self._execute_query(queries.cancel_order(order_id))
+        self._execute_query(queries.restore_order_books(order_id))
+        self._connection.commit()
+        self._update_orders()
+        return
+
     def login(self, login, password):
         error_message = None
 
@@ -137,6 +192,7 @@ class db_client:
         if password_hash(password) == int(hashed_password):
             self.password = password
             self._get_account_info(phone)
+            self._update_orders()
         else:
             error_message = "Wrong password, try again"
         return error_message
@@ -225,7 +281,7 @@ class db_client:
             book_instance_id, = b.fetchone()
             order.append(book_instance_id)
 
-        new_order_id, = self._execute_query(queries.get_last_reader_id).fetchone()
+        new_order_id, = self._execute_query(queries.get_last_order_id).fetchone()
         new_order_id += 1
 
         cursor = self._connection.cursor(buffered=True)
@@ -238,4 +294,5 @@ class db_client:
             cursor.execute(queries.reserve_book_instance, (book_instance_id,))
 
         self._connection.commit()
+        self._update_orders()
         return ""
