@@ -274,6 +274,39 @@ class queries:
                 "FROM `book instance` "
                 "WHERE is_available = TRUE")
 
+    @staticmethod
+    def get_all_orders():
+        return ("SELECT o.order_id, s.status_name, o.return_date "
+                "FROM orders AS o "
+                "INNER JOIN statuses AS s ON o.status_id = s.status_id")
+
+    @staticmethod
+    def accept_order(order_id):
+        return ("UPDATE orders "
+                "SET status_id = 2 "
+                f"WHERE order_id = {order_id}")
+
+    @staticmethod
+    def issue_order(order_id):
+        return ("UPDATE orders "
+                "SET status_id = 3 "
+                f"WHERE order_id = {order_id}")
+
+    @staticmethod
+    def close_order(order_id):
+        return ("UPDATE orders "
+                "SET status_id = 5 "
+                f"WHERE order_id = {order_id}")
+
+    @staticmethod
+    def get_penalty(order_id):
+        return ("SELECT bi.book_instance_id, b.name, DATEDIFF(CURDATE() , o.return_date)*b.penalty_per_day AS penalty "
+                "FROM orders AS o "
+                "INNER JOIN `order details` AS od ON o.order_id = od.order_id "
+                "INNER JOIN `book instance` AS bi ON bi.book_instance_id = od.book_instance_id "
+                "INNER JOIN books AS b ON b.book_id = bi.book_id "
+                f"WHERE o.order_id = {order_id}")
+
 
 class db_client:
     def __init__(self):
@@ -337,7 +370,6 @@ class db_client:
         self._execute_query(queries.restore_order_books(order_id))
         self._connection.commit()
         self._update_orders()
-        return
 
     def _update_all_events(self):
         self.all_events.clear()
@@ -426,17 +458,18 @@ class db_client:
         employee = self._execute_query(queries.get_employee_info(phone))
         if employee.rowcount:
             (employee_id, spec_id, name) = employee.fetchone()
-            if int(spec_id) == 1:
-                self.role = client_role.librarian
-            else:
-                self.role = client_role.event_manager
             self.id = employee_id
             self.name = name
-            self._update_books()
-            self._update_authors()
-            self._update_genres()
-            self._update_conditions()
-            self._update_book_instances()
+            if int(spec_id) == 1:
+                self.role = client_role.librarian
+                self._update_books()
+                self._update_authors()
+                self._update_genres()
+                self._update_conditions()
+                self._update_book_instances()
+                self._update_all_orders()
+            else:
+                self.role = client_role.event_manager
             return
 
     def create_account(self, name, phone, password):
@@ -568,3 +601,46 @@ class db_client:
         self._execute_query(queries.reserve_book_instance(book_id))
         self._connection.commit()
         self._update_book_instances()
+
+    def _update_all_orders(self):
+        self.orders.clear()
+        orders = self._execute_query(queries.get_all_orders())
+        for (order_id, order_status, return_date) in orders:
+            new_order = order(order_id, order_status)
+            new_order.return_date = return_date
+            book_names = self._execute_query(queries.get_book_names(order_id=order_id))
+            for (book_name, bi_id) in book_names:
+                new_order.book_names.append(book_name)
+                new_order.book_ids.append(bi_id)
+
+            self.orders.append(new_order)
+
+    def accept_order(self, order_id):
+        self._execute_query(queries.accept_order(order_id))
+        self._connection.commit()
+        self._update_all_orders()
+
+    def reject_order(self, order_id):
+        self._execute_query(queries.cancel_order(order_id))
+        self._execute_query(queries.restore_order_books(order_id))
+        self._connection.commit()
+        self._update_all_orders()
+
+    def issue_order(self, order_id):
+        self._execute_query(queries.issue_order(order_id))
+        self._connection.commit()
+        self._update_all_orders()
+
+    def check_penalty(self, order_id):
+        penalties = self._execute_query(queries.get_penalty(order_id))
+        penalty = 0
+        for (_, _, p) in penalties:
+            if p > 0:
+                penalty += p
+        return penalty
+
+    def close_order(self, order_id):
+        self._execute_query(queries.close_order(order_id))
+        self._execute_query(queries.restore_order_books(order_id))
+        self._connection.commit()
+        self._update_all_orders()

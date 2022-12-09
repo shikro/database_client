@@ -160,7 +160,7 @@ class Ui_librarian_window(object):
         librarian_window.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(librarian_window)
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(0)
         self.horizontalSlider.sliderMoved['int'].connect(self.slider_label.setNum) # type: ignore
         QtCore.QMetaObject.connectSlotsByName(librarian_window)
 

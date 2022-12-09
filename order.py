@@ -7,3 +7,4 @@ class order:
         self.return_date = None
         self.book_names = []
         self.book_ids = []
+        self.book_ids = []
