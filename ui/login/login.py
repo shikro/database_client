@@ -26,8 +26,12 @@ class login_window(Ui_login_window):
             match self.context.db_client.role:
                 case client_role.reader:
                     self.context.change_window(window_type.reader)
-                case _:
-                    print(self.context.db_client.role)
+                case client_role.librarian:
+                    self.context.change_window(window_type.librarian)
+                case client_role.event_manager:
+                    self.context.change_window(window_type.event_manager)
+                case client_role.speaker:
+                    self.context.change_window(window_type.speaker)
 
     def _check_fields(self):
         res = True

@@ -195,6 +195,85 @@ class queries:
         return ("DELETE FROM `event listeners` "
                 f"WHERE event_id = {event_id} and reader_id = {reader_id}")
 
+    @staticmethod
+    def get_last_author_id():
+        return "SELECT MAX(author_id) FROM authors"
+
+    @staticmethod
+    def get_last_genre_id():
+        return "SELECT MAX(genre_id) FROM genres"
+
+    @staticmethod
+    def new_author(name, a_id):
+        return ("INSERT INTO authors "
+                "(author_id, name) "
+                f"VALUES ({a_id}, '{name}')")
+
+    @staticmethod
+    def new_genre(name, g_id):
+        return ("INSERT INTO genres "
+                "(genre_id, name) "
+                f"VALUES ({g_id}, '{name}')")
+
+    @staticmethod
+    def get_last_book_instance_id():
+        return "SELECT MAX(book_instance_id) FROM `book instance`"
+
+    @staticmethod
+    def new_book_instance(bi_id, b_id, c_id):
+        return ("INSERT INTO `book instance` "
+                "(book_instance_id, book_id, condition_id, is_available) "
+                f"VALUES ({bi_id}, {b_id}, {c_id}, 1)")
+
+    @staticmethod
+    def is_book_instance_available(bi_id):
+        return ("SELECT 1 "
+                "FROM `book instance` "
+                f"WHERE book_instance_id = {bi_id} and is_available = TRUE")
+
+    @staticmethod
+    def get_last_book_id():
+        return "SELECT MAX(book_id) FROM books"
+
+    @staticmethod
+    def new_book(b_id, name, pen):
+        return ("INSERT INTO books "
+                "(book_id, name, penalty_per_day) "
+                f"VALUES ({b_id}, '{name}', {pen})")
+
+    @staticmethod
+    def add_author_to_book(b_id, a_id):
+        return ("INSERT INTO `book authors` "
+                "(book_id, author_id) "
+                f"VALUES ({b_id}, {a_id})")
+
+    @staticmethod
+    def add_genre_to_book(b_id, g_id):
+        return ("INSERT INTO `book genres`"
+                "(book_id, genre_id) "
+                f"VALUES ({b_id}, {g_id})")
+
+    @staticmethod
+    def get_authors_id_name():
+        return ("SELECT * "
+                "FROM authors")
+
+    @staticmethod
+    def get_genres_id_name():
+        return ("SELECT * "
+                "FROM genres")
+
+    @staticmethod
+    def get_conditions():
+        return ("SELECT * "
+                "FROM conditions")
+
+    @staticmethod
+    def get_available_bi():
+        return ("SELECT book_instance_id "
+                "FROM `book instance` "
+                "WHERE is_available = TRUE")
+
 
 class db_client:
     def __init__(self):
@@ -208,6 +287,10 @@ class db_client:
         self.birth_date = None
         self.books = []
         self.orders = []
+        self.authors = {}
+        self.genres = {}
+        self.book_conditions = {}
+        self.book_instance_ids = []
         self.all_events = []
         self.my_events_id = []
 
@@ -217,6 +300,7 @@ class db_client:
         return cursor
 
     def _update_books(self):
+        self.books.clear()
         books = self._execute_query(queries.get_all_books_id_name())
         for (book_id, name) in books:
             self.books.append(book(book_id, name))
@@ -348,6 +432,11 @@ class db_client:
                 self.role = client_role.event_manager
             self.id = employee_id
             self.name = name
+            self._update_books()
+            self._update_authors()
+            self._update_genres()
+            self._update_conditions()
+            self._update_book_instances()
             return
 
     def create_account(self, name, phone, password):
@@ -411,3 +500,71 @@ class db_client:
         self._connection.commit()
         self._update_orders()
         return ""
+
+    def _update_authors(self):
+        authors = self._execute_query(queries.get_authors_id_name())
+        for a_id, a_name in authors:
+            self.authors[a_name] = a_id
+
+    def _update_genres(self):
+        genres = self._execute_query(queries.get_genres_id_name())
+        for g_id, g_name in genres:
+            self.genres[g_name] = g_id
+
+    def _update_book_instances(self):
+        self.book_instance_ids.clear()
+        bi_ids = self._execute_query(queries.get_available_bi())
+        for bi_id, in bi_ids:
+            self.book_instance_ids.append(bi_id)
+
+    def _update_conditions(self):
+        conditions = self._execute_query(queries.get_conditions())
+        for cond_id, cond_name in conditions:
+            self.book_conditions[cond_name] = cond_id
+
+    def get_id_for_new_bi(self):
+        bi_id, = self._execute_query(queries.get_last_book_instance_id()).fetchone()
+        bi_id += 1
+        return bi_id
+
+    def new_author(self, name):
+        a_id, = self._execute_query(queries.get_last_author_id()).fetchone()
+        a_id += 1
+        self._execute_query(queries.new_author(name, a_id))
+        self._connection.commit()
+        self._update_authors()
+
+    def new_genre(self, name):
+        g_id, = self._execute_query(queries.get_last_genre_id()).fetchone()
+        g_id += 1
+        self._execute_query(queries.new_genre(name, g_id))
+        self._connection.commit()
+        self._update_genres()
+
+    def new_book(self, name, author_ids, genre_ids, penalty):
+        b_id, = self._execute_query(queries.get_last_book_id()).fetchone()
+        b_id += 1
+        self._execute_query(queries.new_book(b_id, name, penalty))
+        self._connection.commit()
+        for a_id in author_ids:
+            self._execute_query(queries.add_author_to_book(b_id, a_id))
+        for g_id in genre_ids:
+            self._execute_query(queries.add_genre_to_book(b_id, g_id))
+        self._connection.commit()
+        self._update_books()
+
+    def new_book_instance(self, book_id, condition):
+        bi_id, = self._execute_query(queries.get_last_book_instance_id()).fetchone()
+        bi_id += 1
+        c_id = self.book_conditions[condition]
+        self._execute_query(queries.new_book_instance(bi_id, book_id, c_id))
+        self._connection.commit()
+        self._update_book_instances()
+
+    def remove_book_instance(self, book_id):
+        if self._execute_query(queries.is_book_instance_available(book_id)).rowcount == 0:
+            return
+
+        self._execute_query(queries.reserve_book_instance(book_id))
+        self._connection.commit()
+        self._update_book_instances()

@@ -2,6 +2,7 @@ from PyQt6 import QtWidgets
 from ui.login.login import login_window
 from ui.account_creation.account_creation import account_creation_window
 from ui.reader.reader import reader_window
+from ui.librarian.librarian import librarian_window
 from ui.window_types import window_type
 from client import db_client
 
@@ -23,6 +24,8 @@ class context(QtWidgets.QMainWindow):
                 self.ui = account_creation_window(self)
             case window_type.reader:
                 self.ui = reader_window(self)
+            case window_type.librarian:
+                self.ui = librarian_window(self)
         self.ui.setup()
         self.show()
 

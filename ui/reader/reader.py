@@ -175,6 +175,7 @@ class reader_window(Ui_reader_window):
         self.update_info_button.clicked.connect(self._update_info_clicked)
         self.create_order_button.clicked.connect(self._create_order_clicked)
         self.clear_order_button.clicked.connect(self._clear_order_clicked)
+        self.refresh_button.clicked.connect(self._refresh_orders_clicked)
 
     def _update_info_clicked(self):
         if not self._check_account_info_fields():
@@ -233,3 +234,7 @@ class reader_window(Ui_reader_window):
         self.info_label.setText("")
         self.selected_books.clear()
         self.books_in_order_list.clear()
+
+    def _refresh_orders_clicked(self):
+        self._setup_orders_table()
+        return
