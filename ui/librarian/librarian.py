@@ -41,10 +41,15 @@ class on_create_widget(QtWidgets.QDialogButtonBox):
 
 
 class orders_button(QtWidgets.QPushButton):
-    def __init__(self, on_clicked, text):
+    def __init__(self, text, order_id, context):
         super().__init__()
-        self.clicked.connect(on_clicked)
+        self.clicked.connect(self._clicked)
         self.setText(text)
+        self.order_id = order_id
+        self.context = context
+
+    def _clicked(self):
+        self.context.issue_order(self.order_id)
 
 
 class on_close_widget(QtWidgets.QDialogButtonBox):
@@ -210,7 +215,7 @@ class librarian_window(Ui_librarian_window):
                 case 'Создан':
                     cell_widget = on_create_widget(order.id, self)
                 case 'Готов к выдаче':
-                    cell_widget = orders_button(on_clicked=lambda: self._issue_order(order.id), text="issue")
+                    cell_widget = orders_button("issue", order.id, self)
                 case 'Ожидает сдачи':
                     cell_widget = on_close_widget(order.id, self)
                 case _:
@@ -226,11 +231,12 @@ class librarian_window(Ui_librarian_window):
         self.context.db_client.reject_order(order_id)
         self._update_orders_table()
 
-    def _issue_order(self, order_id):
+    def issue_order(self, order_id):
+        print("iss" + str(order_id))
         self.context.db_client.issue_order(order_id)
         self._update_orders_table()
 
-    def _close_order(self, order_id):
+    def close_order(self, order_id):
         self.context.db_client.close_order(order_id)
         self.penalty_label.setText("")
         self._update_orders_table()
