@@ -49,8 +49,8 @@
       <rect>
        <x>0</x>
        <y>0</y>
-       <width>681</width>
-       <height>429</height>
+       <width>98</width>
+       <height>28</height>
       </rect>
      </property>
      <attribute name="label">
@@ -299,11 +299,11 @@
         <x>20</x>
         <y>20</y>
         <width>641</width>
-        <height>161</height>
+        <height>201</height>
        </rect>
       </property>
       <attribute name="horizontalHeaderDefaultSectionSize">
-       <number>150</number>
+       <number>145</number>
       </attribute>
       <column>
        <property name="text">
@@ -313,6 +313,11 @@
       <column>
        <property name="text">
         <string>speakers</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>books</string>
        </property>
       </column>
       <column>
@@ -326,30 +331,17 @@
        </property>
       </column>
      </widget>
-     <widget class="QPushButton" name="events_refresh_button">
-      <property name="geometry">
-       <rect>
-        <x>500</x>
-        <y>390</y>
-        <width>131</width>
-        <height>41</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>refresh</string>
-      </property>
-     </widget>
      <widget class="QTableWidget" name="my_events_table">
       <property name="geometry">
        <rect>
         <x>20</x>
-        <y>210</y>
+        <y>250</y>
         <width>641</width>
-        <height>171</height>
+        <height>161</height>
        </rect>
       </property>
       <attribute name="horizontalHeaderDefaultSectionSize">
-       <number>150</number>
+       <number>145</number>
       </attribute>
       <column>
        <property name="text">
@@ -359,6 +351,11 @@
       <column>
        <property name="text">
         <string>speakers</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>books</string>
        </property>
       </column>
       <column>
@@ -389,7 +386,7 @@
       <property name="geometry">
        <rect>
         <x>20</x>
-        <y>190</y>
+        <y>230</y>
         <width>221</width>
         <height>16</height>
        </rect>
@@ -404,8 +401,8 @@
       <rect>
        <x>0</x>
        <y>0</y>
-       <width>681</width>
-       <height>429</height>
+       <width>98</width>
+       <height>28</height>
       </rect>
      </property>
      <attribute name="label">

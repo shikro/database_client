@@ -34,6 +34,30 @@ class orders_table_button(QtWidgets.QPushButton):
         self.context.cancel_order(self.order_id)
 
 
+class all_events_table_button(QtWidgets.QPushButton):
+    def __init__(self, parent, event_id, context):
+        super().__init__(parent)
+        self.event_id = event_id
+        self.contex = context
+        self.setText("sign up")
+        self.clicked.connect(self._clicked)
+
+    def _clicked(self):
+        self.contex.sign_up_for_event(self.event_id)
+
+
+class my_events_table_button(QtWidgets.QPushButton):
+    def __init__(self, parent, event_id, context):
+        super().__init__(parent)
+        self.event_id = event_id
+        self.contex = context
+        self.setText("won't go")
+        self.clicked.connect(self._clicked)
+
+    def _clicked(self):
+        self.contex.unsubscribe_from_event(self.event_id)
+
+
 class reader_window(Ui_reader_window):
     def __init__(self, context):
         super().__init__()
@@ -45,6 +69,12 @@ class reader_window(Ui_reader_window):
         self._setup_account_info_fields()
         self._setup_books_table()
         self._setup_orders_table()
+        self._setup_events_table(self.context.db_client.all_events,
+                                 self.all_events_table,
+                                 all_events_table_button)
+        self._setup_events_table(self.context.db_client.get_my_events_info(),
+                                 self.my_events_table,
+                                 my_events_table_button)
         self._setup_events()
 
     def _setup_account_info_fields(self):
@@ -94,11 +124,57 @@ class reader_window(Ui_reader_window):
                 cancel_button = orders_table_button(self.orders_table, order.id, self)
                 self.orders_table.setCellWidget(row_num, button_column, cancel_button)
 
+    def _setup_events_table(self, source, table, btn_creation_fn ):
+        table.setRowCount(0)
+        events = source
+        theme_column = 0
+        speakers_column = 1
+        books_column = 2
+        date_column = 3
+        button_column = 4
+        for event in events:
+            row_num = table.rowCount()
+            table.insertRow(row_num)
+
+            table.setItem(row_num, theme_column, create_item(event.theme))
+            table.setItem(row_num, date_column, create_item(str(event.date)))
+
+            speakers_list = QtWidgets.QListWidget()
+            table.setCellWidget(row_num, speakers_column, speakers_list)
+            for speaker_name in event.speakers:
+                speakers_list.addItem(speaker_name)
+
+            books_list = QtWidgets.QListWidget()
+            table.setCellWidget(row_num, books_column, books_list)
+            for book_name in event.books:
+                books_list.addItem(book_name)
+
+            btn = btn_creation_fn(table, event.id, self)
+            table.setCellWidget(row_num, button_column, btn)
+
+    def sign_up_for_event(self, event_id):
+        if event_id not in self.context.db_client.my_events_id:
+            self.context.db_client.sign_up_for_event(event_id)
+            self._setup_events_table(self.context.db_client.all_events,
+                                     self.all_events_table,
+                                     all_events_table_button)
+            self._setup_events_table(self.context.db_client.get_my_events_info(),
+                                     self.my_events_table,
+                                     my_events_table_button)
+
+    def unsubscribe_from_event(self, event_id):
+        self.context.db_client.unsubscribe_from_event(event_id)
+        self._setup_events_table(self.context.db_client.all_events,
+                                 self.all_events_table,
+                                 all_events_table_button)
+        self._setup_events_table(self.context.db_client.get_my_events_info(),
+                                 self.my_events_table,
+                                 my_events_table_button)
+
     def _setup_events(self):
         self.update_info_button.clicked.connect(self._update_info_clicked)
         self.create_order_button.clicked.connect(self._create_order_clicked)
         self.clear_order_button.clicked.connect(self._clear_order_clicked)
-        self.refresh_button.clicked.connect(self._refresh_clicked)
 
     def _update_info_clicked(self):
         if not self._check_account_info_fields():
@@ -157,6 +233,3 @@ class reader_window(Ui_reader_window):
         self.info_label.setText("")
         self.selected_books.clear()
         self.books_in_order_list.clear()
-
-    def _refresh_clicked(self):
-        self._setup_orders_table()

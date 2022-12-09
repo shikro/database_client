@@ -3,6 +3,7 @@ import hashlib
 from enum import Enum
 from book import book
 from order import order
+from event import event
 
 
 class client_role(Enum):
@@ -157,6 +158,43 @@ class queries:
                 "SET bi.is_available = TRUE "
                 f"WHERE od.order_id = {order_id}")
 
+    @staticmethod
+    def get_events_id_date_theme():
+        return ("SELECT e.event_id, e.`date`, e.theme "
+                "FROM events AS e")
+
+    @staticmethod
+    def get_event_speakers(event_id):
+        return ("SELECT s.speaker_id, s.name "
+                "FROM speakers AS s "
+                "INNER JOIN `event speakers` AS es ON es.speaker_id = s.speaker_id "
+                f"WHERE es.event_id = {event_id}")
+
+    @staticmethod
+    def get_event_books(event_id):
+        return ("SELECT b.name "
+                "FROM books AS b "
+                "INNER JOIN  `event books` AS eb ON b.book_id = eb.book_id "
+                f"WHERE eb.event_id = {event_id}")
+
+    @staticmethod
+    def get_my_events(reader_id):
+        return ("SELECT el.event_id "
+                "FROM `event listeners` AS el "
+                "INNER JOIN readers AS r ON r.reader_id = el.reader_id "
+                f"WHERE r.reader_id = {reader_id}")
+
+    @staticmethod
+    def sign_up_for_event(event_id, reader_id):
+        return ("INSERT INTO `event listeners` "
+                "(event_id, reader_id) "
+                f"VALUES ({event_id}, {reader_id})")
+
+    @staticmethod
+    def unsubscribe_from_event(event_id, reader_id):
+        return ("DELETE FROM `event listeners` "
+                f"WHERE event_id = {event_id} and reader_id = {reader_id}")
+
 
 class db_client:
     def __init__(self):
@@ -170,7 +208,8 @@ class db_client:
         self.birth_date = None
         self.books = []
         self.orders = []
-        self._update_books()
+        self.all_events = []
+        self.my_events_id = []
 
     def _execute_query(self, query, *args):
         cursor = self._connection.cursor(buffered=True)
@@ -216,6 +255,49 @@ class db_client:
         self._update_orders()
         return
 
+    def _update_all_events(self):
+        self.all_events.clear()
+        events = self._execute_query(queries.get_events_id_date_theme())
+        for (event_id, event_date, event_theme) in events:
+            new_event = event(event_id)
+            new_event.date = event_date
+            new_event.theme = event_theme
+
+            speakers = self._execute_query(queries.get_event_speakers(event_id))
+            for (_, speaker_name) in speakers:
+                new_event.speakers.append(speaker_name)
+
+            books = self._execute_query(queries.get_event_books(event_id))
+            for book_name, in books:
+                new_event.books.append(book_name)
+
+            self.all_events.append(new_event)
+
+    def sign_up_for_event(self, event_id):
+        self._execute_query(queries.sign_up_for_event(event_id, self.id))
+        self._connection.commit()
+        self._update_my_events()
+
+    def unsubscribe_from_event(self, event_id):
+        self._execute_query(queries.unsubscribe_from_event(event_id, self.id))
+        self._connection.commit()
+        self._update_my_events()
+
+    def _update_my_events(self):
+        self.my_events_id.clear()
+        events = self._execute_query(queries.get_my_events(self.id))
+        for event_id, in events:
+            self.my_events_id.append(event_id)
+
+    def get_my_events_info(self):
+        my_events_info = []
+        for event_id in self.my_events_id:
+            for ev in self.all_events:
+                if ev.id == event_id:
+                    my_events_info.append(ev)
+
+        return my_events_info
+
     def login(self, login, password):
         error_message = None
 
@@ -228,7 +310,6 @@ class db_client:
         if password_hash(password) == int(hashed_password):
             self.password = password
             self._get_account_info(phone)
-            self._update_orders()
         else:
             error_message = "Wrong password, try again"
         return error_message
@@ -243,6 +324,10 @@ class db_client:
             self.name = name
             self.email = email
             self.birth_date = birth_date
+            self._update_all_events()
+            self._update_my_events()
+            self._update_orders()
+            self._update_books()
             return
 
         speaker = self._execute_query(queries.get_speaker_info(phone))
