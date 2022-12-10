@@ -1,6 +1,7 @@
 import mysql.connector
 import hashlib
 from enum import Enum
+
 from book import book
 from order import order
 from event import event
@@ -307,6 +308,43 @@ class queries:
                 "INNER JOIN books AS b ON b.book_id = bi.book_id "
                 f"WHERE o.order_id = {order_id}")
 
+    @staticmethod
+    def get_speakers_id_name():
+        return ("SELECT speaker_id, name "
+                "FROM speakers")
+
+    @staticmethod
+    def get_last_event_id():
+        return "SELECT MAX(event_id) FROM events"
+
+    @staticmethod
+    def get_last_speaker_id():
+        return "SELECT MAX(speaker_id) FROM speakers"
+
+    @staticmethod
+    def new_event(e_id, date, theme):
+        return ("INSERT INTO events "
+                "(event_id, `date`, theme) "
+                f"VALUES ({e_id}, '{date.strftime('%Y-%m-%d %H:%M:%S')}', '{theme}')")
+
+    @staticmethod
+    def add_speaker_to_event(s_id, e_id):
+        return ("INSERT INTO `event speakers` "
+                "(event_id, speaker_id) "
+                f"VALUES ({e_id}, {s_id})")
+
+    @staticmethod
+    def new_speaker(s_id, phone, name, email):
+        return ("INSERT INTO speakers "
+                "(speaker_id, phone, name, email) "
+                f"VALUES ({s_id}, '{phone}', '{name}', '{email}')")
+
+    @staticmethod
+    def add_book_to_event(b_id, e_id):
+        return ("INSERT INTO `event books` "
+                "(event_id, book_id) "
+                f"VALUES ({e_id}, {b_id})")
+
 
 class db_client:
     def __init__(self):
@@ -326,6 +364,7 @@ class db_client:
         self.book_instance_ids = []
         self.all_events = []
         self.my_events_id = []
+        self.speakers = {}
 
     def _execute_query(self, query, *args):
         cursor = self._connection.cursor(buffered=True)
@@ -470,6 +509,8 @@ class db_client:
                 self._update_all_orders()
             else:
                 self.role = client_role.event_manager
+                self._update_books()
+                self._update_speakers()
             return
 
     def create_account(self, name, phone, password):
@@ -644,3 +685,29 @@ class db_client:
         self._execute_query(queries.restore_order_books(order_id))
         self._connection.commit()
         self._update_all_orders()
+
+    def _update_speakers(self):
+        self.speakers.clear()
+        sps = self._execute_query(queries.get_speakers_id_name())
+        for (s_id, s_name) in sps:
+            self.speakers[s_name] = s_id
+
+    def new_speaker(self, phone, email, name, password):
+        s_id, = self._execute_query(queries.get_last_speaker_id()).fetchone()
+        s_id += 1
+        self._execute_query(queries.insert_account_step1(phone, password_hash(password)))
+        self._connection.commit()
+        self._execute_query(queries.new_speaker(s_id, phone, name, email))
+        self._connection.commit()
+        self._update_speakers()
+
+    def new_event(self, theme, date, speakers, books):
+        e_id, = self._execute_query(queries.get_last_event_id()).fetchone()
+        e_id += 1
+        self._execute_query(queries.new_event(e_id, date, theme))
+        self._connection.commit()
+        for s in speakers:
+            self._execute_query(queries.add_speaker_to_event(s, e_id))
+        for b in books:
+            self._execute_query(queries.add_book_to_event(b, e_id))
+        self._connection.commit()

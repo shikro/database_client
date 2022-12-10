@@ -218,7 +218,6 @@ class reader_window(Ui_reader_window):
         if return_date <= datetime.datetime.today().date():
             self.info_label.setText("Invalid return date")
             return
-        print()
         error_message = self.context.db_client.create_order(self.selected_books, return_date)
         if error_message:
             self.books_in_order_list.clear()

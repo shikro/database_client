@@ -3,6 +3,7 @@ from ui.login.login import login_window
 from ui.account_creation.account_creation import account_creation_window
 from ui.reader.reader import reader_window
 from ui.librarian.librarian import librarian_window
+from ui.event_manager.event_manager import event_manager
 from ui.window_types import window_type
 from client import db_client
 
@@ -26,6 +27,8 @@ class context(QtWidgets.QMainWindow):
                 self.ui = reader_window(self)
             case window_type.librarian:
                 self.ui = librarian_window(self)
+            case window_type.event_manager:
+                self.ui = event_manager(self)
         self.ui.setup()
         self.show()
 
