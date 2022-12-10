@@ -4,6 +4,7 @@ from ui.account_creation.account_creation import account_creation_window
 from ui.reader.reader import reader_window
 from ui.librarian.librarian import librarian_window
 from ui.event_manager.event_manager import event_manager
+from ui.speaker.speaker import speaker_window
 from ui.window_types import window_type
 from client import db_client
 
@@ -29,6 +30,8 @@ class context(QtWidgets.QMainWindow):
                 self.ui = librarian_window(self)
             case window_type.event_manager:
                 self.ui = event_manager(self)
+            case window_type.speaker:
+                self.ui = speaker_window(self)
         self.ui.setup()
         self.show()
 

@@ -345,6 +345,13 @@ class queries:
                 "(event_id, book_id) "
                 f"VALUES ({e_id}, {b_id})")
 
+    @staticmethod
+    def event_id_by_speaker(s_id):
+        return ("SELECT e.event_id "
+                "FROM events AS e "
+                "INNER JOIN `event speakers` AS es ON e.event_id = es.event_id "
+                f"WHERE es.speaker_id = {s_id}")
+
 
 class db_client:
     def __init__(self):
@@ -492,6 +499,8 @@ class db_client:
             self.id = int(speaker_id)
             self.name = name
             self.email = email
+            self._update_all_events()
+            self._update_sp_events()
             return
 
         employee = self._execute_query(queries.get_employee_info(phone))
@@ -711,3 +720,9 @@ class db_client:
         for b in books:
             self._execute_query(queries.add_book_to_event(b, e_id))
         self._connection.commit()
+
+    def _update_sp_events(self):
+        self.my_events_id.clear()
+        events = self._execute_query(queries.event_id_by_speaker(self.id))
+        for event_id, in events:
+            self.my_events_id.append(event_id)
