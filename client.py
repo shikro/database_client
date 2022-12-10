@@ -140,11 +140,7 @@ class queries:
 
     @staticmethod
     def get_book_names(order_id):
-        return ("SELECT b.name, bi.book_instance_id "
-                "FROM `order details` AS od "
-                "INNER JOIN `book instance` AS bi ON od.book_instance_id  = bi.book_instance_id "
-                "INNER JOIN books AS b ON b.book_id = bi.book_id "
-                f"WHERE od.order_id = {order_id}")
+        return f"CALL getOrderBookNames({order_id})"
 
     @staticmethod
     def cancel_order(order_id):
@@ -277,9 +273,7 @@ class queries:
 
     @staticmethod
     def get_all_orders():
-        return ("SELECT o.order_id, s.status_name, o.return_date "
-                "FROM orders AS o "
-                "INNER JOIN statuses AS s ON o.status_id = s.status_id")
+        return "CALL getAllOrders()"
 
     @staticmethod
     def accept_order(order_id):
@@ -301,12 +295,7 @@ class queries:
 
     @staticmethod
     def get_penalty(order_id):
-        return ("SELECT bi.book_instance_id, b.name, DATEDIFF(CURDATE() , o.return_date)*b.penalty_per_day AS penalty "
-                "FROM orders AS o "
-                "INNER JOIN `order details` AS od ON o.order_id = od.order_id "
-                "INNER JOIN `book instance` AS bi ON bi.book_instance_id = od.book_instance_id "
-                "INNER JOIN books AS b ON b.book_id = bi.book_id "
-                f"WHERE o.order_id = {order_id}")
+        return f"CALL getOrderPenalties({order_id})"
 
     @staticmethod
     def get_speakers_id_name():
@@ -355,7 +344,11 @@ class queries:
 
 class db_client:
     def __init__(self):
-        self._connection = mysql.connector.connect(user='root', database='library')
+        self._connection = mysql.connector.connect(user='root',
+                                                   password='',
+                                                   host='127.0.0.1',
+                                                   port='3306',
+                                                   database='library')
         self.role = client_role.unauthorized
         self.password = None
         self.id = None
@@ -374,6 +367,8 @@ class db_client:
         self.speakers = {}
 
     def _execute_query(self, query, *args):
+        while not self._connection.is_connected():
+            self._connection.reconnect()
         cursor = self._connection.cursor(buffered=True)
         cursor.execute(query, args)
         return cursor
